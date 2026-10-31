@@ -31,17 +31,27 @@ fernsprecher-ki-modus-an join "https://facetime.apple.com/join#v=1&p=…"
 
 - **Joins a FaceTime call as a web guest**, the way someone on Android or Windows would: the FaceTime web
   client runs in an off-screen WebKit view. FaceTime.app is not used, and there is no Apple ID, no virtual
-  audio driver and no camera or microphone access.
+  audio driver, and the Mac's own camera and microphone stay off.
 - **Hears everyone as text.** On-device speech recognition with Apple's model or Whisper (MLX) turns every phrase
   into a line in `transcript.txt`. When several agents are in one call, each line says who spoke.
 - **Speaks into the call.** `say "…"` speaks with an Apple voice or a Piper voice, straight into the call's audio.
 - **Looks when asked.** `participants` lists who is in the call; `look --who <name>` saves one frame of that
   person's camera as JPEG for the agent to see. FaceTime sends web guests small video (about 320 px), so it's
   enough to see what's there, not to read small print.
-- **Shows a tile instead of a camera**: an orb with the agent's name and its status (listening, thinking,
-  speaking, away), captions, a picture or the Mac's screen.
+- **Shows a tile instead of a camera**: a glossy orb in the agent's colour with its name, the status in the corner
+  and a glowing dot (grey when idle, the agent's colour when it hears you, yellow while thinking). While the agent
+  speaks, the orb glides into the corner and subtitles fill the tile. `show` puts a note, a picture or the Mac's
+  screen on it. The tile's words follow the app's language, or a language chosen per agent.
 - **Behaves like a chat for the agent.** `listen --wait` blocks until someone speaks, and `wait` wakes a sleeping
   agent (Claude Code, Codex and friends) as soon as its name is said.
+
+## Which agents?
+
+Any agent that can run commands in a terminal: Claude Code, Codex, Gemini CLI, Aider, your own scripts.
+The whole interface is a handful of shell commands (`join`, `listen`, `say`, `wait`, `hangup`) and a text file,
+so nothing is tied to one model. Agents that can be woken up from outside use `wait`; the others get a
+`--respond '<command>'` that runs after every phrase and speaks whatever it prints. The app keeps ready-made
+profiles for Claude and GPT · Codex, and a custom one for everybody else.
 
 ## The app
 
@@ -145,7 +155,27 @@ Two targets:
 - FaceTime's web client is not an official API. If Apple changes it, the autopilot that clicks *Join* may need an update.
 - Remote screen shares from an iPhone don't seem to reach web guests, so `look` sees cameras only.
 - Speech recognition stumbles over brand names and jargon. Add them with `--words` or `words.txt`.
-- Audio only; the agent has a tile, not a face.
+- The agent has a tile, not a face, and can only see other people's video one frame at a time, when it asks.
+
+## Credits
+
+**Author:** [adm1nsys](https://github.com/adm1nsys): idea, product direction, FaceTime connection,
+app UI, tile design, testing
+
+**Built with AI agents, through Fernsprecher KI-Modus itself:**
+- **Claude Opus 5.5**: agent-facing API (designed by the agent for its own use),
+  tile and webcam streaming, app API integration, translations, this README
+- **GPT-6 Astra**: project website (built live via FaceTime with screen sharing),
+  cross-model testing
+- The turn-ending protocol that keeps the agent on the call was worked out
+  by Claude and GPT together in a FaceTime call
+
+Most of this project was developed over FaceTime calls with the agents,
+using the tool itself.
+
+## License
+
+[MIT](LICENSE)
 
 ## Deutsch
 
@@ -153,4 +183,5 @@ Two targets:
 bekommt alles Gesagte als Text und antwortet mit Stimme. Die Spracherkennung läuft auf dem Mac, Apple-ID und
 FaceTime-App braucht er nicht. Die App **Fernsprecher** installiert das Werkzeug, ohne Homebrew in die Quere zu kommen.
 Außerdem lädt sie Modelle für Spracherkennung und Stimme, testet beides vor dem Anruf, verwaltet deine Konferenzen und
-exportiert die Dienstanweisung `AGENTUR.md` samt `TELEFONBUCH.md`.
+exportiert die Dienstanweisung `AGENTUR.md` samt `TELEFONBUCH.md`. Funktioniert mit jedem Agenten, der ein
+Terminal bedienen kann – Claude, GPT/Codex oder ein eigener.
