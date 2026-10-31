@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tile Playground</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b0c10; --panel:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --text:#f2f2f5; --muted:rgba(242,242,245,.6); --accent:#d97757; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font:15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display:grid; grid-template-columns:minmax(280px, 480px) minmax(320px, 1fr); gap:24px; padding:24px 16px; max-width:1400px; margin:0 auto; }
+  @media (max-width: 900px) { body { grid-template-columns:1fr; } }
+  canvas { width:100%; aspect-ratio:1; border-radius:28px; display:block; box-shadow:0 30px 80px rgba(0,0,0,.55); background:#000; }
+  .panel { display:grid; gap:12px; padding:18px; border:1px solid var(--line); border-radius:20px; background:var(--panel); margin-top:16px; }
+  label { display:grid; gap:6px; color:var(--muted); font-size:13px; }
+  input[type=text], select { width:100%; padding:8px 10px; border-radius:10px; border:1px solid var(--line); background:rgba(0,0,0,.3); color:var(--text); font:inherit; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  input[type=color] { width:44px; height:30px; border:none; background:none; padding:0; }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; }
+  .tabs button, .btn { padding:6px 12px; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.05); color:var(--text); font:inherit; font-size:14px; cursor:pointer; }
+  .tabs button.on { background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.4); }
+  .tabs button.edited::after { content:" •"; color:var(--accent); }
+  .tabs .sep { width:1px; background:var(--line); margin:0 4px; }
+  .btn.primary { background:var(--accent); border-color:transparent; color:#1a1210; font-weight:600; }
+  .editor { display:flex; flex-direction:column; min-height:0; }
+  textarea { flex:1; min-height:420px; width:100%; resize:vertical; padding:14px; border-radius:16px; border:1px solid var(--line); background:#07080b; color:#e8e8ee; font:13px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size:2; white-space:pre; }
+  .status { min-height:20px; font:12px/1.4 ui-monospace, Menlo, monospace; color:#7ee2a8; }
+  .status.err { color:#ff7a7a; }
+  .help { color:var(--muted); font-size:13px; }
+  code { font:12px ui-monospace, Menlo, monospace; background:rgba(255,255,255,.08); padding:1px 5px; border-radius:5px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sliders { display:grid; gap:10px; }
+  .sliders label span { color:var(--text); font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+<div>
+  <canvas id="tile" width="960" height="960"></canvas>
+  <form class="panel" onsubmit="return false">
+    <div class="row">
+      <label style="flex:1">Agent
+        <select id="brand"><option value="claude">Claude</option><option value="gpt">GPT</option><option value="custom">Custom</option></select>
+      </label>
+      <label style="flex:1">Language
+        <select id="lang"><option>en</option><option>de</option><option>fr</option><option>da</option><option>ja</option></select>
+      </label>
+    </div>
+    <div class="row" id="customColors" hidden>
+      <input type="color" id="c0" value="#0b0b14" title="Background top">
+      <input type="color" id="c1" value="#17172a" title="Background bottom">
+      <input type="color" id="c2" value="#8b7cf6" title="Orb">
+    </div>
+    <label>Name <input type="text" id="name" value="Claude"></label>
+    <label>Subtitles while speaking <input type="text" id="caption" placeholder="empty = default line"></label>
+    <div class="sliders" id="sliders"></div>
+    <label>Voice level while speaking <input type="range" id="level" min="0" max="1" step="0.01" value="0.35"></label>
+  </form>
+</div>
+<div class="editor">
+  <h1>Tile modules</h1>
+  <p class="help">Each frame runs the current state's module, then <code>scene</code>, which draws everything.
+    A state module just sets a few values: <code>o.dotColor</code> (<code>o.grey</code>, <code>o.brandColor</code>, <code>o.yellow</code> or any CSS colour),
+    <code>o.dotAlpha</code>, <code>o.pulse</code> (orb size change), <code>o.particles</code>, <code>o.corner</code> (small orb top left with subtitles),
+    <code>o.darken</code>. Useful inputs: <code>o.t</code> (seconds), <code>o.level</code> (voice 0…1). Positions and sizes live in <code>scene</code>.
+    Picking a state tab also shows that state; edits apply live and are kept in this browser.</p>
+  <div class="tabs" id="tabs"></div>
+  <textarea id="code" spellcheck="false"></textarea>
+  <div class="status" id="status"></div>
+  <div class="row">
+    <button class="btn primary" id="export" type="button">Export for Claude</button>
+    <button class="btn" id="copy" type="button">Copy JSON</button>
+    <button class="btn" id="import" type="button">Import…</button>
+    <button class="btn" id="resetOne" type="button">Reset this module</button>
+    <button class="btn" id="resetAll" type="button">Reset all</button>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+  </div>
+  <p class="help">Export saves <code>fernsprecher-tile.json</code> to Downloads. Then tell Claude, it runs
+    <code>python3 Tile/sync.py ~/Downloads/fernsprecher-tile.json</code> and the call gets your tile.</p>
+</div>
+<script>
+/* <tile-modules> */
+const DEFAULTS = {
+  "scene": "// Draws the whole tile every frame. The state modules only set a few values first:\n//   o.dotColor   colour of the dot top right            o.pulse      orb size change (0.1 = 10 % bigger)\n//   o.dotAlpha   its brightness 0…1                     o.particles  dots circling the orb\n//   o.corner     true = small orb top left, subtitles   o.darken     0…1, dims the whole tile\n// Positions are on a 960 × 960 canvas, (0, 0) is the top left corner.\n// Sizes (the playground's sliders edit these lines)\nconst ORB = 240;        // orb radius in the middle\nconst ORB_Y = 490;      // orb centre, pixels from the top\nconst NAME_GAP = 170;   // from the orb's lower edge to the name\nconst SMALL = 70;       // orb radius while speaking (top left)\n\nconst { g, W, H, t, mem, rgba, mixc, blob, wrap } = o;\nconst white = [255, 255, 255], black = [0, 0, 0];\nconst ease = (now, target, speed) => now + (target - now) * Math.min(1, (t - (mem.last || t)) * speed);\nconst lerp = (a, b, k) => a + (b - a) * k;\n\n// 0 = orb in the middle, 1 = small orb in the corner (speaking); eased, so the layout morphs\nmem.p = ease(mem.p ?? (o.corner ? 1 : 0), o.corner ? 1 : 0, 5);\nmem.dark = ease(mem.dark ?? o.darken, o.darken, 4);\nmem.part = ease(mem.part ?? 0, o.particles ? 1 : 0, 4);\nmem.last = t;\nconst p = mem.p * mem.p * (3 - 2 * mem.p);   // smoothstep\n\n// background: one colour, soft light from the top left corner\ng.fillStyle = rgba(o.background, 1); g.fillRect(0, 0, W, H);\nconst light = g.createRadialGradient(0, 0, 0, 0, 0, W * 1.15);\nlight.addColorStop(0, rgba(o.brand, 0.32)); light.addColorStop(1, rgba(o.brand, 0));\ng.fillStyle = light; g.fillRect(0, 0, W, H);\n\n// `show --image` / `show --screen`: the picture fills the tile under a slim status bar\nif (o.image) {\n  const im = o.image, box = { x: 40, y: 130, w: W - 80, h: H - 170 };\n  const k = Math.min(box.w / im.width, box.h / im.height), w = im.width * k, h = im.height * k;\n  const x = box.x + (box.w - w) / 2, y = box.y + (box.h - h) / 2;\n  g.save(); g.beginPath(); g.roundRect(x, y, w, h, 24); g.clip(); g.drawImage(im, x, y, w, h); g.restore();\n  g.strokeStyle = 'rgba(255,255,255,0.12)'; g.lineWidth = 2; g.beginPath(); g.roundRect(x, y, w, h, 24); g.stroke();\n  g.font = '600 28px -apple-system, Helvetica, sans-serif'; g.textAlign = 'left'; g.fillStyle = 'rgba(255,255,255,0.55)';\n  if ('letterSpacing' in g) g.letterSpacing = '3px';\n  g.fillText(o.name.toLocaleUpperCase() + ' · ' + o.label, 64, 86);\n  if ('letterSpacing' in g) g.letterSpacing = '0px';\n  g.fillStyle = o.dotColor; g.shadowColor = o.dotColor; g.shadowBlur = 26; g.globalAlpha = o.dotAlpha;\n  g.beginPath(); g.arc(W - 72, 77, 12, 0, Math.PI * 2); g.fill();\n  g.shadowBlur = 0; g.globalAlpha = 1;\n  return;\n}\n\n// orb\nconst cx = lerp(480, 40 + SMALL * 1.6, p), cy = lerp(ORB_Y, 40 + SMALL * 1.6, p);\nconst R = lerp(ORB, SMALL, p), r = R * (1 + o.pulse);\nblob(cx, cy, r * 2, o.brand, 0.3);\ng.fillStyle = rgba(o.brand, 0.16); g.beginPath(); g.arc(cx, cy, r * 1.18, 0, Math.PI * 2); g.fill();   // halo disc\nconst sphere = g.createRadialGradient(cx - r * 0.32, cy - r * 0.38, r * 0.04, cx, cy, r);\nsphere.addColorStop(0, rgba(white, 1)); sphere.addColorStop(0.2, rgba(mixc(o.brand, white, 0.55), 1));\nsphere.addColorStop(0.65, rgba(o.brand, 1)); sphere.addColorStop(1, rgba(mixc(o.brand, black, 0.45), 1));\ng.fillStyle = sphere; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();\ng.strokeStyle = rgba(white, 0.4); g.lineWidth = lerp(2.5, 1.5, p);   // inner ring\ng.beginPath(); g.arc(cx, cy, r * 0.79, 0, Math.PI * 2); g.stroke();\nif (mem.part > 0.01) {\n  g.fillStyle = rgba(white, 0.9 * mem.part);\n  for (let i = 0; i < 3; i++) {\n    const a = t * 2.4 + i * (Math.PI * 2 / 3), d = r * 1.32;\n    g.beginPath(); g.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, lerp(10, 5, p), 0, Math.PI * 2); g.fill();\n  }\n}\n\n// name under the orb\ng.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillStyle = '#ffffff';\ng.font = '700 ' + Math.round(lerp(68, 34, p)) + 'px -apple-system, Helvetica, sans-serif';\ng.fillText(o.name, cx, cy + R * 1.18 + lerp(NAME_GAP - 0.18 * ORB, 56, p));\n\n// status text (always grey): top left, moving next to the dot while speaking\nconst grey = 'rgba(255,255,255,0.55)';\ng.font = '600 28px -apple-system, Helvetica, sans-serif';\nif ('letterSpacing' in g) g.letterSpacing = '3px';\ng.fillStyle = grey;\ng.globalAlpha = 1 - p; g.textAlign = 'left'; g.fillText(o.label, 64, 86);\ng.globalAlpha = p; g.textAlign = 'right'; g.fillText(o.label, W - 104, 86);\nif ('letterSpacing' in g) g.letterSpacing = '0px';\ng.globalAlpha = 1;\n\n// the dot, top right, with its own light\ng.fillStyle = o.dotColor; g.shadowColor = o.dotColor; g.shadowBlur = 26; g.globalAlpha = o.dotAlpha;\ng.beginPath(); g.arc(W - 72, 77, 12, 0, Math.PI * 2); g.fill();\ng.shadowBlur = 0; g.globalAlpha = 1;\n\n// subtitles fill the rest of the tile while speaking; a note from `show` sits under the name otherwise\nconst words = o.caption || o.note;\nif (words && p > 0.01) {\n  g.globalAlpha = p; g.textAlign = 'left'; g.fillStyle = 'rgba(255,255,255,0.9)';\n  g.font = '500 46px -apple-system, Helvetica, sans-serif';\n  const top = 40 + SMALL * 3.2 + 110;\n  wrap(words, W - 144, Math.floor((H - top) / 58)).forEach((l, i) => g.fillText(l, 72, top + i * 58));\n  g.globalAlpha = 1;\n}\nif (o.note && p < 0.99) {\n  g.globalAlpha = 1 - p; g.textAlign = 'center'; g.fillStyle = grey;\n  g.font = '400 32px -apple-system, Helvetica, sans-serif';\n  wrap(o.note, W - 200, 2).forEach((l, i) => g.fillText(l, 480, Math.min(H - 70, ORB_Y + ORB + NAME_GAP + 56) + i * 42));\n  g.globalAlpha = 1;\n}\n\n// away: the whole tile goes dark\nif (mem.dark > 0.01) { g.fillStyle = rgba(black, mem.dark); g.fillRect(0, 0, W, H); }",
+  "connecting": "// Joining the call: orb in the middle, grey dot.\no.dotColor = o.grey;\no.pulse = Math.sin(o.t * 3) * 0.02;",
+  "listening": "// Waiting for someone to speak: same, slow breathing.\no.dotColor = o.grey;\no.pulse = Math.sin(o.t * 1.6) * 0.03;",
+  "hearing": "// Someone is talking: the dot takes the agent's colour.\no.dotColor = o.brandColor;\no.pulse = Math.abs(Math.sin(o.t * 6)) * 0.06;",
+  "thinking": "// Working on an answer: yellow dot, particles around the orb.\no.dotColor = o.yellow;\no.particles = true;\no.pulse = Math.sin(o.t * 1.6) * 0.03;",
+  "speaking": "// Talking: small orb top left, subtitles below, the dot flickers with the voice (o.level 0…1).\no.corner = true;\no.dotColor = o.brandColor;\no.dotAlpha = 0.35 + Math.min(1, o.level * 4) * 0.65;\no.pulse = Math.min(1, o.level * 3) * 0.25;",
+  "waking": "// Speech woke the agent up: like connecting, with eager pulses.\no.dotColor = o.grey;\no.pulse = Math.abs(Math.sin(o.t * 3)) * 0.1;",
+  "away": "// Nobody is listening: grey dot, the whole tile dimmed.\no.dotColor = o.grey;\no.darken = 0.6;"
+};
+/* </tile-modules> */
+const W = 960, H = 960;
+const cv = document.getElementById('tile');
+const g = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+const SHARED = ['scene'];
+const STATES = ['connecting', 'listening', 'hearing', 'thinking', 'speaking', 'waking', 'away'];
+const KEY = 'fernsprecher-tile-modules-v3';
+let sources = Object.assign({}, DEFAULTS, (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } })());
+let compiled = {}, current = 'scene', state = 'listening', host = null;
+
+function compile(name) {
+  try { compiled[name] = new Function('o', sources[name]); return null; }
+  catch (e) { return e; }
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(sources)); } catch {} }
+function setStatus(msg, err) { $('status').textContent = msg; $('status').className = 'status' + (err ? ' err' : ''); }
+
+function makeHost(cfg) {
+  const mem = {};
+    const allLabels = {
+      en: { connecting: 'Connecting…', listening: 'Listening', hearing: 'Hearing you…', thinking: 'Thinking…', speaking: 'Speaking', waking: 'Calling ' + cfg.name + '…', away: 'Away' },
+      de: { connecting: 'Verbindet sich…', listening: 'Hört zu', hearing: 'Hört zu…', thinking: 'Denkt nach…', speaking: 'Spricht', waking: 'Weckt ' + cfg.name + '…', away: 'Pause' },
+      fr: { connecting: 'Connexion…', listening: 'À l’écoute', hearing: 'Je vous entends…', thinking: 'Réflexion…', speaking: 'Parle', waking: 'On appelle ' + cfg.name + '…', away: 'En pause' },
+      da: { connecting: 'Forbinder…', listening: 'Lytter', hearing: 'Lytter…', thinking: 'Tænker…', speaking: 'Taler', waking: 'Vækker ' + cfg.name + '…', away: 'Pause' },
+      ja: { connecting: '接続中…', listening: '聞いています', hearing: '聞き取り中…', thinking: '考え中…', speaking: '話しています', waking: cfg.name + 'を呼んでいます…', away: '休憩中' },
+    };
+    const lang2 = String(cfg.lang || 'en').slice(0, 2).toLowerCase();
+    const labels = allLabels[lang2] || allLabels.en;
+    // Brand themes: --brand claude|gpt, or guessed from the agent's name. Custom: --brand '#bg1,#bg2,#orb'.
+    const brands = {
+      claude: { bg: ['#2b2a27', '#1a1917'], orb: '#d97757' },
+      gpt: { bg: ['#2a2b2e', '#202123'], orb: '#10a37f' },
+      none: { bg: ['#0b0b14', '#17172a'], orb: null },
+    };
+    const brand = (() => {
+      const b = String(cfg.brand || '').toLowerCase();
+      if (b.includes('#')) { const c = b.split(',').map(x => x.trim()); return { bg: [c[0], c[1] || c[0]], orb: c[2] || null }; }
+      if (brands[b]) return brands[b];
+      if (/claude/i.test(cfg.name)) return brands.claude;
+      if (/gpt|openai|codex/i.test(cfg.name)) return brands.gpt;
+      return brands.none;
+    })();
+    const colors = { connecting: '#8e8e93', listening: '#64d2ff', hearing: '#30d158', thinking: '#ffd60a', speaking: '#bf5af2', waking: '#ff9f0a', away: '#636366' };
+    if (brand.orb) { colors.listening = brand.orb; colors.speaking = brand.orb; }
+    const st = { state: 'connecting', caption: '', note: '', image: null, changed: performance.now() };
+    let level = 0;
+    const buf = new Uint8Array(512);
+
+    const wrap = (text, maxW, maxLines) => {
+      const words = String(text).split(/\s+/).filter(Boolean), lines = [];
+      let line = '';
+      for (const w of words) {
+        const t = line ? line + ' ' + w : w;
+        if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t;
+      }
+      if (line) lines.push(line);
+      if (lines.length > maxLines) { const tail = lines.slice(-maxLines); tail[0] = '… ' + tail[0]; return tail; }
+      return lines;
+    };
+    const ready = { en: 'Ready to talk', de: 'Bereit zum Gespräch', fr: 'Prêt à discuter', da: 'Klar til en snak', ja: 'いつでも話せます' };
+    const rgbOf = hex => { const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim()); const v = m ? parseInt(m[1], 16) : 0x8b7cf6; return [v >> 16, (v >> 8) & 255, v & 255]; };
+    const rgba = (c, a) => 'rgba(' + c.map(Math.round).join(',') + ',' + a + ')';
+    const mixc = (c, d, k) => c.map((x, i) => x + (d[i] - x) * k);
+    const hue = (c, deg) => {
+      // rotate the hue in RGB space (Rodrigues around the grey axis)
+      const a = deg * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a), k = (1 - cos) / 3, q = Math.sqrt(1 / 3) * sin;
+      const m = [cos + k, k - q, k + q, k + q, cos + k, k - q, k - q, k + q, cos + k];
+      return [0, 1, 2].map(i => Math.max(0, Math.min(255, c[0] * m[i * 3] + c[1] * m[i * 3 + 1] + c[2] * m[i * 3 + 2])));
+    };
+    const blob = (x, y, r, c, a) => {
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, rgba(c, a)); gr.addColorStop(1, rgba(c, 0));
+      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+    };
+  return (t, level, s, caption) => {
+    st.state = s; st.caption = s === 'speaking' ? caption : '';
+    const statusColor = colors[s] || '#64d2ff';
+    const bg = g.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, brand.bg[0]); bg.addColorStop(1, brand.bg[1]);
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+      const o = {
+      g, W, H, t, level, state: s, mem, rgba, mixc, blob, wrap,
+      name: cfg.name, label: String(labels[s] || s).toLocaleUpperCase(),
+      caption: st.caption || '', note: st.note || '',
+      brand: rgbOf(brand.orb || statusColor), background: rgbOf(brand.bg[1] || brand.bg[0]),
+      brandColor: brand.orb || statusColor, grey: '#8e8e93', yellow: '#ffd60a',
+      // what the state modules may change
+      dotColor: '#8e8e93', dotAlpha: 1, pulse: 0, particles: false, corner: false, darken: 0,
+    };
+    for (const name of [s, 'scene']) {
+      try { g.save(); (compiled[name] || (() => {}))(o); }
+      catch (e) { setStatus(name + ': ' + e.message, true); }
+      finally { g.restore(); }
+    }
+  };
+}
+
+function rebuild() {
+  const b = $('brand').value;
+  $('customColors').hidden = b !== 'custom';
+  const brand = b === 'custom' ? [$('c0').value, $('c1').value, $('c2').value].join(',') : b;
+  host = makeHost({ name: $('name').value, lang: $('lang').value, brand });
+  document.documentElement.style.setProperty('--accent', b === 'gpt' ? '#10a37f' : b === 'custom' ? $('c2').value : '#d97757');
+}
+
+function renderTabs() {
+  const mk = name => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = name;
+    b.className = (name === current ? 'on' : '') + (sources[name] !== DEFAULTS[name] ? ' edited' : '');
+    b.onclick = () => { current = name; if (STATES.includes(name)) state = name; $('code').value = sources[name]; renderTabs(); setStatus(''); };
+    return b;
+  };
+  const sep = document.createElement('span'); sep.className = 'sep';
+  $('tabs').replaceChildren(...SHARED.map(mk), sep, ...STATES.map(mk));
+}
+
+$('code').addEventListener('input', () => {
+  sources[current] = $('code').value; save();
+  const e = compile(current);
+  setStatus(e ? current + ': ' + e.message : current + ': ok', !!e);
+  renderTabs();
+});
+$('code').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+  const ta = e.target, s = ta.selectionStart;
+  ta.setRangeText('  ', s, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input'));
+});
+const json = () => JSON.stringify(sources, null, 2);
+$('export').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([json()], { type: 'application/json' }));
+  a.download = 'fernsprecher-tile.json'; a.click(); URL.revokeObjectURL(a.href);
+  setStatus('saved fernsprecher-tile.json');
+};
+$('copy').onclick = async () => { try { await navigator.clipboard.writeText(json()); setStatus('copied'); } catch (e) { setStatus('copy failed: ' + e.message, true); } };
+$('import').onclick = () => $('file').click();
+$('file').onchange = async () => {
+  const f = $('file').files[0]; if (!f) return;
+  try { const data = JSON.parse(await f.text()); for (const k of Object.keys(DEFAULTS)) if (typeof data[k] === 'string') sources[k] = data[k]; }
+  catch (e) { setStatus('import failed: ' + e.message, true); return; }
+  save(); Object.keys(sources).forEach(compile); $('code').value = sources[current]; renderTabs(); renderSliders(); setStatus('imported');
+};
+$('resetOne').onclick = () => { sources[current] = DEFAULTS[current]; save(); compile(current); $('code').value = sources[current]; renderTabs(); renderSliders(); setStatus(current + ': reset'); };
+$('resetAll').onclick = () => { if (!confirm('Reset all modules?')) return; sources = Object.assign({}, DEFAULTS); save(); Object.keys(sources).forEach(compile); $('code').value = sources[current]; renderTabs(); renderSliders(); setStatus('all reset'); };
+$('brand').onchange = () => { const b = $('brand').value; $('name').value = b === 'claude' ? 'Claude' : b === 'gpt' ? 'GPT' : 'KI-Agent'; rebuild(); };
+['name', 'lang', 'c0', 'c1', 'c2'].forEach(id => $(id).addEventListener('input', rebuild));
+
+// Sliders for the size constants at the top of `scene`; they rewrite those lines, so Export carries them.
+const SIZES = [['ORB', 'Orb size', 100, 330], ['ORB_Y', 'Orb height (from top)', 250, 650], ['NAME_GAP', 'Name below orb', 40, 200], ['SMALL', 'Orb while speaking', 40, 140]];
+function renderSliders() {
+  $('sliders').replaceChildren(...SIZES.map(([key, title, min, max]) => {
+    const m = new RegExp('const ' + key + ' = (\\d+);').exec(sources.scene);
+    const l = document.createElement('label');
+    if (!m) { l.textContent = title + ': (line not found in scene)'; return l; }
+    l.innerHTML = `${title}: <span>${m[1]}</span><input type="range" min="${min}" max="${max}" value="${m[1]}">`;
+    l.querySelector('input').oninput = e => {
+      sources.scene = sources.scene.replace(new RegExp('const ' + key + ' = \\d+;'), `const ${key} = ${e.target.value};`);
+      l.querySelector('span').textContent = e.target.value;
+      save(); compile('scene'); if (current === 'scene') $('code').value = sources.scene; renderTabs();
+    };
+    return l;
+  }));
+}
+$('code').addEventListener('input', () => { if (current === 'scene') renderSliders(); });
+
+Object.keys(sources).forEach(compile);
+rebuild(); renderTabs(); renderSliders(); $('code').value = sources[current];
+(function loop() {
+  const t = performance.now() / 1000;
+  const base = +$('level').value;
+  const lv = state === 'speaking' ? base * (0.55 + 0.45 * Math.abs(Math.sin(t * 7) * Math.sin(t * 2.3))) : 0;
+  host(t, lv, state, $('caption').value);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Release artefacts are built outside the repo; keep stray ones out too
+*.zip
+*.tar.gz
+*.dmg
+*.dSYM/
+
+# Call sessions and local models never belong in git
+.fernsprecher*/
+transcript.txt
+transcript.jsonl
+daemon.log
+*.onnx
+*.onnx.json
+venv/
+__pycache__/
+
+# Exported agent files contain private FaceTime links
+/AGENTUR.md
+/TELEFONBUCH.md
