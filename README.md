@@ -1,22 +1,18 @@
-<p align="center">
-  <img src=".github/assets/banner.svg" alt="Fernsprecher-KI-Modus" width="100%">
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset=".github/readme/banner-light.svg">
+  <img src=".github/readme/banner-dark.svg" alt="Fernsprecher-KI-Modus — Give your AI agent a telephone" width="100%">
+</picture>
+
+<p>
+  <a href="https://adm1nsys.github.io/Fernsprecher-KI-Modus/"><img src="https://img.shields.io/badge/Website-070707?style=for-the-badge&logo=safari&logoColor=white" alt="Website"></a>
+  <a href="https://github.com/adm1nsys/Fernsprecher-KI-Modus/releases/latest/download/Fernsprecher.zip"><img src="https://img.shields.io/badge/Download_app-070707?style=for-the-badge&logo=apple&logoColor=white" alt="Download Fernsprecher.zip"></a>
+  <a href="https://github.com/adm1nsys/Fernsprecher-KI-Modus/releases/latest/download/fernsprecher-ki-modus-an-macos-universal.tar.gz"><img src="https://img.shields.io/badge/Download_CLI-070707?style=for-the-badge&logo=gnubash&logoColor=white" alt="Download the CLI only"></a>
+  <a href="https://adm1nsys.github.io/Fernsprecher-KI-Modus/#versions"><img src="https://img.shields.io/badge/All_versions-070707?style=for-the-badge&logo=github&logoColor=white" alt="All versions"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-070707?style=for-the-badge&labelColor=070707&color=434343" alt="MIT license"></a>
 </p>
 
-<p align="center">
-  <b>Give your AI agent a telephone.</b><br>
-  It joins a FaceTime link, hears everyone as text and answers out loud. Nobody has to install anything for it.
-</p>
-
-<p align="center">
-  <b>Gib deinem KI-Agenten ein Telefon.</b><br>
-  Er tritt über einen FaceTime-Link bei, bekommt alles Gesagte als Text und antwortet mit Stimme.
-</p>
-
-<p align="center">
-  <a href="https://github.com/adm1nsys/Fernsprecher-KI-Modus/releases/latest">Download</a> ·
-  <a href="https://adm1nsys.github.io/Fernsprecher-KI-Modus/">Website</a> ·
-  <a href="#deutsch">Deutsch</a>
-</p>
+**Give your AI agent a telephone.** It joins a FaceTime link, hears everyone as text and answers out loud. Nobody has to install anything for it.
+An experiment that works — see [Limits, honestly](#limits-honestly) for its two quirks. [Deutsch ↓](#deutsch)
 
 ---
 
@@ -36,7 +32,7 @@ fernsprecher-ki-modus-an join "https://facetime.apple.com/join#v=1&p=…"
   into a line in `transcript.txt`. When several agents are in one call, each line says who spoke.
 - **Speaks into the call.** `say "…"` speaks with an Apple voice or a Piper voice, straight into the call's audio.
 - **Looks when asked.** `participants` lists who is in the call; `look --who <name>` saves one frame of that
-  person's camera as JPEG for the agent to see. FaceTime sends web guests small video (about 320 px), so it's
+  person's camera as JPEG for the agent to see. FaceTime sends web guests small video (about 360 × 360), so it's
   enough to see what's there, not to read small print.
 - **Shows a tile instead of a camera**: a glossy orb in the agent's colour with its name, the status in the corner
   and a glowing dot (grey when idle, the agent's colour when it hears you, yellow while thinking). While the agent
@@ -129,10 +125,16 @@ writes it into `Tile/*.js`, the CLI and the playground. Rebuild, and the next ca
 
 ## Privacy
 
-- Speech recognition runs on the Mac. Audio is never sent to a server by this tool.
-- The FaceTime web session is in-memory only, and its WebCrypto key is generated per run, so nothing goes to the keychain.
-- The agent can't type an Apple ID or a password, and `AGENTUR.md` tells it never to.
-- `transcript.txt` stays in `~/.fernsprecher` (or your `--dir`). Delete it whenever you like.
+How private it is depends on where you run it and which agent you use.
+
+- **Everything runs on the Mac that is in the call.** Speech recognition (Apple or Whisper) and the voices work there;
+  the tool sends no audio to any server.
+- **The transcript lives on that Mac**, in `~/.fernsprecher/transcript.txt` (or your `--dir`), and that is what the agent reads.
+- **Who else sees the words is up to the agent.** A cloud agent such as Claude or GPT/Codex sends what it reads to its
+  provider, as in any chat with it. A local language model keeps everything on the Mac.
+- No account. The agent can't type an Apple ID or a password, and `AGENTUR.md` tells it never to. The FaceTime web
+  session is in-memory only, and its WebCrypto key is generated per run, so nothing goes to the keychain.
+- Delete `transcript.txt` whenever you like.
 
 ## Building
 
@@ -152,6 +154,13 @@ Two targets:
 
 ## Limits, honestly
 
+It works well, with two quirks to accept:
+
+- **Small picture.** FaceTime sends web guests about 360 × 360 video. The agent sees what is in the frame, not small print.
+- **The models take some getting into.** Picking and testing speech recognition and voices per language takes time the first time round.
+
+And beyond that:
+
 - FaceTime's web client is not an official API. If Apple changes it, the autopilot that clicks *Join* may need an update.
 - Remote screen shares from an iPhone don't seem to reach web guests, so `look` sees cameras only.
 - Speech recognition stumbles over brand names and jargon. Add them with `--words` or `words.txt`.
@@ -160,13 +169,15 @@ Two targets:
 ## Credits
 
 **Author:** [adm1nsys](https://github.com/adm1nsys): idea, product direction, FaceTime connection,
-app UI, tile design, testing
+app UI, tile design, testing. The AI agents below worked under his direction, and he reviewed everything they made.
 
 **Built with AI agents, through Fernsprecher KI-Modus itself:**
 - **Claude Opus 5.5**: agent-facing API (designed by the agent for its own use),
   tile and webcam streaming, app API integration, translations, this README
-- **GPT-6 Astra**: project website (built live via FaceTime with screen sharing),
-  cross-model testing
+  - *added in November 2026:* rebuilt the [website](https://adm1nsys.github.io/Fernsprecher-KI-Modus/)
+    on the design code shared by the adm1nsys project sites
+- **GPT-6 Astra**: the [first website](https://adm1nsys.github.io/Fernsprecher-KI-Modus/classic/)
+  (built live via FaceTime with screen sharing), cross-model testing
 - The turn-ending protocol that keeps the agent on the call was worked out
   by Claude and GPT together in a FaceTime call
 

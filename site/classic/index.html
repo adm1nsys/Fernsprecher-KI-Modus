@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Fernsprecher-KI-Modus — an AI agent joins a FaceTime link as a web guest.">
+  <title>Fernsprecher-KI-Modus</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#f6f7fb; --ink:#17202b; --muted:#5d6876; --surface:rgba(255,255,255,.76); --line:rgba(23,32,43,.13); --accent:#10a37f; --accent-2:#55d6b3; --orb-core:#d8fff2; --shadow:0 18px 55px rgba(15,27,42,.12); }
+    [data-theme="dark"] { color-scheme: dark; --bg:#0d1219; --ink:#eef5f3; --muted:#a7b6b4; --surface:rgba(22,31,42,.72); --line:rgba(231,245,240,.14); --accent:#38d7a8; --accent-2:#9cf3d4; --orb-core:#c3ffe8; --shadow:0 20px 70px rgba(0,0,0,.34); }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    a { color:inherit; }
+    .shell { width:min(1140px, calc(100% - 40px)); margin:auto; }
+    .nav { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:20px 0; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:760; letter-spacing:-.025em; text-decoration:none; white-space:nowrap; }
+    .mini-orb { width:28px; height:28px; border-radius:50%; background:radial-gradient(circle at 36% 30%, var(--orb-core), var(--accent-2) 26%, var(--accent) 58%, #08735c); box-shadow:0 0 22px color-mix(in srgb, var(--accent) 70%, transparent); }
+    .controls { display:flex; gap:8px; align-items:center; }
+    button, select { appearance:none; border:1px solid var(--line); color:var(--ink); background:var(--surface); border-radius:10px; font:inherit; padding:8px 10px; }
+    button { cursor:pointer; min-width:42px; }
+    button:hover, select:hover { border-color:var(--accent); }
+    .hero { position:relative; overflow:hidden; display:grid; grid-template-columns:1.15fr .85fr; align-items:center; gap:52px; padding:66px 0 86px; }
+    .hero::before { content:""; position:absolute; width:640px; height:640px; right:-250px; top:-240px; border-radius:50%; background:radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 67%); pointer-events:none; }
+    .eyebrow { color:var(--accent); font-weight:760; letter-spacing:.09em; text-transform:uppercase; font-size:.75rem; }
+    h1 { margin:12px 0 18px; max-width:760px; font-size:clamp(2.65rem, 7vw, 5.9rem); line-height:.96; letter-spacing:-.065em; }
+    .lede { max-width:620px; color:var(--muted); font-size:1.18rem; }
+    .hero-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; }
+    .button { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:10px 17px; border-radius:12px; font-weight:700; text-decoration:none; }
+    .primary { color:#05271e; background:var(--accent-2); }
+    .secondary { border:1px solid var(--line); background:var(--surface); }
+    .call-tile { position:relative; justify-self:center; width:min(100%, 390px); min-height:330px; overflow:hidden; padding:29px; border:1px solid var(--line); border-radius:30px; background:linear-gradient(145deg, color-mix(in srgb, var(--surface) 85%, var(--accent) 15%), var(--surface)); box-shadow:var(--shadow); }
+    .tile-top { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:.85rem; }
+    .live { display:flex; gap:6px; align-items:center; color:var(--accent); font-weight:750; }
+    .live i { display:block; width:8px; height:8px; border-radius:50%; background:currentColor; box-shadow:0 0 10px currentColor; }
+    .orb { position:relative; width:170px; height:170px; margin:43px auto 31px; border-radius:50%; background:radial-gradient(circle at 37% 30%, #fff 0 3%, var(--orb-core) 11%, var(--accent-2) 31%, var(--accent) 61%, #075d4a 100%); box-shadow:0 0 0 14px color-mix(in srgb, var(--accent) 10%, transparent), 0 0 68px color-mix(in srgb, var(--accent) 60%, transparent); animation:breathe 4.2s ease-in-out infinite; }
+    .orb::after { content:""; position:absolute; inset:18px; border-radius:50%; border:1px solid rgba(255,255,255,.45); }
+    .tile-name { font-size:1.25rem; font-weight:780; text-align:center; }
+    .tile-status { margin-top:3px; color:var(--muted); text-align:center; }
+    @keyframes breathe { 50% { transform:scale(1.045); box-shadow:0 0 0 21px color-mix(in srgb, var(--accent) 8%, transparent), 0 0 86px color-mix(in srgb, var(--accent) 72%, transparent); } }
+    section { padding:78px 0; border-top:1px solid var(--line); }
+    .section-head { max-width:680px; margin-bottom:32px; }
+    h2 { margin:7px 0 10px; font-size:clamp(1.85rem, 4vw, 3.2rem); line-height:1.05; letter-spacing:-.045em; }
+    .section-head p { margin:0; color:var(--muted); font-size:1.05rem; }
+    .cards { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+    .card { padding:25px; border:1px solid var(--line); border-radius:20px; background:var(--surface); box-shadow:0 7px 24px rgba(9,19,31,.035); }
+    .card h3 { margin:0 0 8px; font-size:1.1rem; letter-spacing:-.015em; }
+    .card p { margin:0; color:var(--muted); }
+    .number { display:grid; place-items:center; width:31px; height:31px; margin-bottom:22px; border-radius:9px; color:#05271e; background:var(--accent-2); font-weight:800; }
+    .agent-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+    .agent-card { --agent:#8f95a5; --agent-deep:#262834; position:relative; min-height:272px; overflow:hidden; padding:24px; border:1px solid color-mix(in srgb, var(--agent) 42%, var(--line)); border-radius:22px; background:linear-gradient(145deg, color-mix(in srgb, var(--agent) 17%, var(--agent-deep)), var(--agent-deep)); box-shadow:0 14px 35px color-mix(in srgb, var(--agent) 13%, transparent); }
+    .agent-card::after { content:""; position:absolute; width:180px; height:180px; right:-75px; top:-85px; border-radius:50%; background:radial-gradient(circle, color-mix(in srgb, var(--agent) 40%, transparent), transparent 67%); pointer-events:none; }
+    .agent-card.claude { --agent:#d97757; --agent-deep:#1a1917; }
+    .agent-card.gpt { --agent:#10a37f; --agent-deep:#202123; }
+    .agent-card.custom { --agent:#a9a7f8; --agent-deep:#20202a; }
+    .agent-orb { position:relative; z-index:1; width:54px; height:54px; margin-bottom:20px; border-radius:50%; background:radial-gradient(circle at 34% 27%, #fff 0 5%, color-mix(in srgb, var(--agent) 28%, #fff) 18%, var(--agent) 58%, var(--agent-deep) 100%); box-shadow:0 0 0 8px color-mix(in srgb, var(--agent) 12%, transparent), 0 0 30px color-mix(in srgb, var(--agent) 62%, transparent); }
+    .custom .agent-orb { background:radial-gradient(circle at 34% 27%, #fff 0 4%, #d8d6ff 17%, #a9a7f8 39%, #6ed7cb 62%, #d58dbb 82%, #242331 100%); }
+    .agent-card h3 { position:relative; z-index:1; margin:0 0 7px; color:#fff; font-size:1.25rem; letter-spacing:-.025em; }
+    .agent-card p { position:relative; z-index:1; min-height:50px; margin:0; color:rgba(255,255,255,.72); }
+    .cmd-row { position:relative; z-index:1; display:flex; align-items:stretch; gap:8px; margin-top:19px; }
+    .agent-command { display:block; flex:1; min-width:0; padding:10px 11px; border:1px solid rgba(255,255,255,.16); border-radius:10px; color:rgba(255,255,255,.9); background:rgba(0,0,0,.2); font:600 .77rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; white-space:normal; overflow-wrap:anywhere; }
+    .copy-btn { flex:none; width:40px; border:1px solid rgba(255,255,255,.16); border-radius:10px; background:rgba(255,255,255,.08); color:rgba(255,255,255,.85); cursor:pointer; display:grid; place-items:center; transition:background .2s, color .2s, border-color .2s; }
+    .copy-btn:hover { background:rgba(255,255,255,.16); }
+    .copy-btn:focus-visible { outline:2px solid var(--agent); outline-offset:2px; }
+    .copy-btn.done { color:var(--agent); border-color:var(--agent); }
+    .copy-btn svg { width:18px; height:18px; }
+    .privacy { display:grid; grid-template-columns:.8fr 1.2fr; gap:24px; padding:32px; border:1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius:24px; background:linear-gradient(125deg, color-mix(in srgb, var(--accent) 13%, var(--surface)), var(--surface)); }
+    .privacy h2 { margin:8px 0; }
+    .checks { display:grid; gap:14px; align-content:center; }
+    .check { display:flex; gap:11px; align-items:flex-start; }
+    .check b { color:var(--accent); font-size:1.25rem; line-height:1.2; }
+    .check p { margin:0; color:var(--muted); }
+    .requirements { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .requirement { padding:22px; border-left:3px solid var(--accent); background:var(--surface); border-radius:0 16px 16px 0; }
+    .requirement strong { display:block; margin-bottom:5px; }
+    .requirement span { color:var(--muted); }
+    footer { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:32px 0 44px; color:var(--muted); font-size:.9rem; }
+    footer a { color:var(--ink); font-weight:700; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media (max-width:760px) { .shell { width:min(100% - 28px, 600px); } .nav { padding:14px 0; } .brand { font-size:.93rem; } .hero { grid-template-columns:1fr; gap:30px; padding:42px 0 58px; } .call-tile { width:min(100%, 365px); } .cards, .agent-grid, .requirements, .privacy { grid-template-columns:1fr; } section { padding:58px 0; } footer { align-items:flex-start; flex-direction:column; gap:10px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="#top"><span class="mini-orb" aria-hidden="true"></span>Fernsprecher-KI-Modus</a>
+      <div class="controls">
+        <label class="sr-only" for="language">Language</label>
+        <select id="language" aria-label="Language"></select>
+        <button id="theme" type="button" aria-label="Toggle colour mode">◐</button>
+      </div>
+    </nav>
+    <main id="top">
+      <header class="hero">
+        <div>
+          <div class="eyebrow" id="eyebrow"></div>
+          <h1 id="title"></h1>
+          <p class="lede" id="lede"></p>
+          <div class="hero-actions"><a class="button primary" id="release" href="https://github.com/adm1nsys/Fernsprecher-KI-Modus/releases" target="_blank" rel="noreferrer"></a><a class="button secondary" href="#how" id="learn"></a></div>
+        </div>
+        <aside class="call-tile" aria-label="Example call tile">
+          <div class="tile-top"><span id="guest"></span><span class="live"><i></i><span id="listening"></span></span></div>
+          <div class="orb" aria-hidden="true"></div>
+          <div class="tile-name">GPT</div><div class="tile-status" id="tileStatus"></div>
+        </aside>
+      </header>
+      <section id="what"><div class="section-head"><div class="eyebrow" id="whatEye"></div><h2 id="whatTitle"></h2><p id="whatText"></p></div><div class="cards" id="whatCards"></div></section>
+      <section id="agents"><div class="section-head"><div class="eyebrow" id="agentsEye"></div><h2 id="agentsTitle"></h2><p id="agentsText"></p></div><div class="agent-grid" id="agentCards"></div></section>
+      <section id="how"><div class="section-head"><div class="eyebrow" id="howEye"></div><h2 id="howTitle"></h2><p id="howText"></p></div><div class="cards" id="steps"></div></section>
+      <section id="privacy"><div class="privacy"><div><div class="eyebrow" id="privacyEye"></div><h2 id="privacyTitle"></h2><p id="privacyText"></p></div><div class="checks" id="checks"></div></div></section>
+      <section id="requirements"><div class="section-head"><div class="eyebrow" id="reqEye"></div><h2 id="reqTitle"></h2><p id="reqText"></p></div><div class="requirements" id="reqs"></div></section>
+    </main>
+    <footer><span id="footer"></span><a href="https://github.com/adm1nsys/Fernsprecher-KI-Modus" target="_blank" rel="noreferrer">GitHub ↗</a></footer>
+  </div>
+  <script>
+    const copy = {
+      en:{name:'English',eye:'FaceTime, with an extra chair',title:'Bring an AI guest to the call.',lede:'Fernsprecher-KI-Modus lets an AI agent join a FaceTime link as a web guest: it listens, speaks, shows a tidy little tile instead of a camera, and looks at someone’s video when asked.',release:'Get the app',learn:'See how it works',guest:'WEB GUEST',listening:'LISTENING',status:'Ready to chat',whatEye:'What it is',whatTitle:'A polite guest, minus the camera anxiety.',whatText:'A macOS app and command-line tool for inviting an agent into a FaceTime conversation without FaceTime.app or an Apple ID.',cards:[['Web guest','Joins a FaceTime link through off-screen WebKit — your Mac’s camera stays off.'],['Hears & speaks','On-device speech recognition in; Apple voices or Piper voices out.'],['Keeps its place','A named orb tile shows the agent and its current status.']],howEye:'How it works',howTitle:'Three small steps. One surprisingly capable guest.',howText:'The app handles setup, models, and conference details so your agent can concentrate on being useful.',steps:[['Install the app','Fernsprecher installs the CLI into your home folder, carefully: it never overwrites an existing command.'],['Pick models','Choose on-device recognition and voice models for your languages and hardware.'],['Give the agent AGENTUR.md','Export agent instructions and TELEFONBUCH.md, then hand AGENTUR.md to your agent.']],privacyEye:'Privacy',privacyTitle:'Your words stay on your Mac.',privacyText:'The call still uses FaceTime’s web guest flow. Speech recognition happens on-device.',checks:[['No account','No Fernsprecher account is needed.'],['No Apple ID typing','The agent never enters an Apple ID — it joins as a web guest.'],['On-device speech','Recognition uses Apple speech recognition or Whisper via MLX on your Mac.']],reqEye:'Requirements',reqTitle:'Built for the current Mac conversation.',reqText:'A few practical requirements before the orb starts talking.',reqs:[['macOS 26 or newer','Required for the web guest flow.'],['Apple silicon for Whisper / MLX','Apple speech recognition remains an option on supported Macs.']],footer:'Made for agents who can keep a conversation going.'},
+      de:{name:'Deutsch',eye:'FaceTime mit einem Platz mehr',title:'Einen KI-Gast zum Gespräch einladen.',lede:'Fernsprecher-KI-Modus lässt einen KI-Agenten als Webgast an einem FaceTime-Link teilnehmen: Er hört zu, spricht, erscheint als aufgeräumte Kachel statt mit Kamera und schaut sich auf Wunsch das Video eines Teilnehmers an.',release:'App laden',learn:'So funktioniert’s',guest:'WEBGAST',listening:'HÖRT ZU',status:'Gesprächsbereit',whatEye:'Was ist das?',whatTitle:'Ein höflicher Gast — ganz ohne Kamerascheu.',whatText:'Eine macOS-App mit Kommandozeilenwerkzeug, die einen Agenten ohne FaceTime-App und ohne Apple-ID in ein FaceTime-Gespräch bringt.',cards:[['Webgast','Tritt über verstecktes WebKit einem FaceTime-Link bei — die Kamera des Mac bleibt aus.'],['Hört zu & spricht','Spracherkennung läuft auf dem Gerät; für die Ausgabe stehen Apple-Stimmen oder Piper bereit.'],['Bleibt erkennbar','Eine benannte Orb-Kachel zeigt Agent und aktuellen Status.']],howEye:'So funktioniert’s',howTitle:'Drei kleine Schritte. Ein erstaunlich gesprächiger Gast.',howText:'Die App kümmert sich um Einrichtung, Modelle und Konferenzdaten. Der Agent darf sich aufs Nützlichsein konzentrieren.',steps:[['App installieren','Fernsprecher legt das CLI behutsam in deinem Benutzerordner ab und überschreibt nie einen vorhandenen Befehl.'],['Modelle auswählen','Wähle lokale Erkennungs- und Stimmmodelle passend zu deinen Sprachen und deiner Hardware.'],['AGENTUR.md übergeben','Exportiere AGENTUR.md und TELEFONBUCH.md; dann gibst du deinem Agenten die AGENTUR.md.']],privacyEye:'Datenschutz',privacyTitle:'Deine Worte bleiben auf deinem Mac.',privacyText:'Für den Anruf wird weiterhin der FaceTime-Webgast genutzt. Die Spracherkennung läuft lokal auf deinem Gerät.',checks:[['Kein Konto','Fernsprecher verlangt kein eigenes Benutzerkonto.'],['Keine Apple-ID-Eingabe','Der Agent tippt nie eine Apple-ID ein, sondern kommt als Webgast dazu.'],['Lokale Spracherkennung','Genutzt werden Apples Spracherkennung oder Whisper über MLX auf deinem Mac.']],reqEye:'Voraussetzungen',reqTitle:'Gemacht für Gespräche auf aktuellen Macs.',reqText:'Ein paar nüchterne Voraussetzungen, bevor die Orb-Kachel losplaudert.',reqs:[['macOS 26 oder neuer','Erforderlich für den Webgast-Ablauf.'],['Apple Silicon für Whisper / MLX','Auf unterstützten Macs bleibt Apples Spracherkennung eine Alternative.']],footer:'Für Agenten, die ein Gespräch nicht aus dem Takt bringen.'},
+      fr:{name:'Français',eye:'FaceTime, avec une chaise en plus',title:'Invitez une IA à l’appel.',lede:'Fernsprecher-KI-Modus permet à un agent IA de rejoindre un lien FaceTime comme invité web : il écoute, parle, affiche une petite tuile plutôt qu’une caméra et regarde la vidéo d’un participant quand on le lui demande.',release:'Obtenir l’app',learn:'Voir le principe',guest:'INVITÉ WEB',listening:'À L’ÉCOUTE',status:'Prêt à discuter',whatEye:'Le principe',whatTitle:'Un invité poli, sans stress de caméra.',whatText:'Une app macOS et un outil en ligne de commande pour inviter un agent dans une conversation FaceTime, sans FaceTime.app ni identifiant Apple.',cards:[['Invité web','Rejoint un lien FaceTime dans WebKit hors écran — la caméra du Mac reste éteinte.'],['Écoute & parle','Reconnaissance vocale sur l’appareil ; voix Apple ou Piper à la sortie.'],['Reste identifiable','Une tuile-orbe nommée montre l’agent et son état.']],howEye:'Fonctionnement',howTitle:'Trois petites étapes. Un invité étonnamment capable.',howText:'L’app gère l’installation, les modèles et les conférences ; l’agent peut se concentrer sur l’essentiel.',steps:[['Installer l’app','Fernsprecher installe le CLI dans votre dossier utilisateur sans jamais remplacer une commande existante.'],['Choisir les modèles','Choisissez les modèles locaux de reconnaissance et de voix adaptés à vos langues et à votre matériel.'],['Donner AGENTUR.md à l’agent','Exportez AGENTUR.md et TELEFONBUCH.md, puis donnez AGENTUR.md à votre agent.']],privacyEye:'Confidentialité',privacyTitle:'Vos paroles restent sur votre Mac.',privacyText:'L’appel utilise toujours le flux d’invité web FaceTime. La reconnaissance vocale s’effectue sur l’appareil.',checks:[['Sans compte','Aucun compte Fernsprecher n’est nécessaire.'],['Pas d’identifiant Apple','L’agent ne saisit jamais d’identifiant Apple : il rejoint l’appel comme invité web.'],['Parole locale','La reconnaissance utilise Apple Speech ou Whisper via MLX sur votre Mac.']],reqEye:'Configuration requise',reqTitle:'Pensé pour les conversations sur Mac récent.',reqText:'Quelques conditions pratiques avant que l’orbe prenne la parole.',reqs:[['macOS 26 ou version ultérieure','Requis pour le flux d’invité web.'],['Apple silicon pour Whisper / MLX','Apple Speech reste une option sur les Mac compatibles.']],footer:'Pour les agents qui savent tenir une conversation.'},
+      da:{name:'Dansk',eye:'FaceTime med en ekstra stol',title:'Tag en AI-gæst med i opkaldet.',lede:'Fernsprecher-KI-Modus lader en AI-agent deltage i et FaceTime-link som webgæst: Den lytter, taler, viser en pæn lille flise i stedet for et kamera og kigger på en deltagers video, når man beder om det.',release:'Hent appen',learn:'Se hvordan',guest:'WEBGÆST',listening:'LYTTER',status:'Klar til samtale',whatEye:'Hvad er det?',whatTitle:'En høflig gæst uden kameraskræk.',whatText:'En macOS-app og et kommandolinjeværktøj til at invitere en agent ind i en FaceTime-samtale uden FaceTime.app eller Apple-id.',cards:[['Webgæst','Deltager i et FaceTime-link gennem WebKit i baggrunden — Mac’ens kamera forbliver slukket.'],['Lytter & taler','Talegenkendelse på enheden ind; Apple-stemmer eller Piper-stemmer ud.'],['Holder sin plads','En navngivet orb-flise viser agenten og dens aktuelle status.']],howEye:'Sådan virker det',howTitle:'Tre små trin. En overraskende dygtig gæst.',howText:'Appen klarer opsætning, modeller og konferencer, så agenten kan koncentrere sig om at være nyttig.',steps:[['Installér appen','Fernsprecher installerer CLI’en i din hjemmemappe og overskriver aldrig en eksisterende kommando.'],['Vælg modeller','Vælg lokale tale- og stemmemodeller, som passer til dine sprog og din hardware.'],['Giv agenten AGENTUR.md','Eksportér AGENTUR.md og TELEFONBUCH.md, og giv derefter AGENTUR.md til din agent.']],privacyEye:'Privatliv',privacyTitle:'Dine ord bliver på din Mac.',privacyText:'Opkaldet bruger stadig FaceTimes webgæstforløb. Talegenkendelsen foregår på enheden.',checks:[['Ingen konto','Du behøver ikke en Fernsprecher-konto.'],['Intet Apple-id','Agenten taster aldrig et Apple-id ind; den deltager som webgæst.'],['Lokal tale','Genkendelsen bruger Apple Speech eller Whisper via MLX på din Mac.']],reqEye:'Krav',reqTitle:'Lavet til samtaler på en nutidig Mac.',reqText:'Et par praktiske krav, før orb’en begynder at tale.',reqs:[['macOS 26 eller nyere','Kræves til webgæstforløbet.'],['Apple silicon til Whisper / MLX','Apple Speech er fortsat en mulighed på understøttede Mac-computere.']],footer:'Til agenter, der kan holde en samtale i gang.'},
+      ja:{name:'日本語',eye:'FaceTime に、もう一席',title:'AI ゲストを通話に招待しよう。',lede:'Fernsprecher-KI-Modus なら、AI エージェントが Web ゲストとして FaceTime リンクに参加します。話を聞き、声で応答し、カメラの代わりに小さなタイルを表示します。頼まれれば参加者の映像も見られます。',release:'アプリを入手',learn:'仕組みを見る',guest:'WEB ゲスト',listening:'聞いています',status:'会話の準備完了',whatEye:'これは何？',whatTitle:'カメラが苦手でも大丈夫な、礼儀正しいゲスト。',whatText:'FaceTime.app や Apple ID を使わず、エージェントを FaceTime 会話へ招く macOS アプリとコマンドラインツールです。',cards:[['Web ゲスト','画面に出ない WebKit で FaceTime リンクへ参加。Mac のカメラは使いません。'],['聞く・話す','音声認識はデバイス上で実行し、出力には Apple の声または Piper を使えます。'],['存在がわかる','名前付きのオーブタイルで、エージェントと現在の状態を表示します。']],howEye:'仕組み',howTitle:'小さな三歩で、頼れるゲスト。',howText:'セットアップ、モデル、会議情報はアプリに任せて、エージェントには役立つことに集中してもらいます。',steps:[['アプリをインストール','Fernsprecher は CLI をホームフォルダへ慎重に導入します。既存のコマンドを上書きしません。'],['モデルを選ぶ','言語とハードウェアに合う、ローカルの認識・音声モデルを選びます。'],['AGENTUR.md を渡す','AGENTUR.md と TELEFONBUCH.md を書き出し、AGENTUR.md をエージェントへ渡します。']],privacyEye:'プライバシー',privacyTitle:'言葉は Mac の中にとどまります。',privacyText:'通話には FaceTime の Web ゲスト方式を使います。音声認識はすべてデバイス上で行われます。',checks:[['アカウント不要','Fernsprecher のアカウントは必要ありません。'],['Apple ID を入力しない','エージェントは Apple ID を入力せず、Web ゲストとして参加します。'],['ローカル音声認識','Mac 上で Apple Speech または MLX 経由の Whisper を使います。']],reqEye:'必要条件',reqTitle:'新しい Mac での会話のために。',reqText:'オーブが話し始める前に、いくつかの実用的な条件があります。',reqs:[['macOS 26 以降','Web ゲストの仕組みに必要です。'],['Whisper / MLX には Apple シリコン','対応 Mac では Apple Speech も選べます。']],footer:'会話の流れを保てるエージェントのために。'}
+    };
+    const agentCopy = {
+      en:{eye:'Choose your caller',title:'Three agents. One call.',text:'Each profile keeps its own name, language, speech recognition, voice and session folder. All three can share one conversation.',agents:[['Claude','A warm, conversational voice with its own profile.','claude','claude'],['GPT / Codex','Can also keep going unattended with --respond.','gpt','gpt'],['AI agent','Bring your own agent and colours.','custom','custom']]},
+      de:{eye:'Wer soll anrufen?',title:'Drei Agenten. Ein Gespräch.',text:'Jedes Profil hat seinen eigenen Namen, seine Sprache, Spracherkennung, Stimme und einen eigenen Sitzungsordner. Alle drei können im selben Gespräch dabei sein.',agents:[['Claude','Warm im Ton, mit eigenem Profil für Sprache, Stimme und Erkennung.','claude','claude'],['GPT / Codex','Kann mit --respond auch unbeaufsichtigt weiterarbeiten.','gpt','gpt'],['KI-Agent','Eigener Agent, eigene Farben – ganz nach deinem Geschmack.','custom','custom']]},
+      fr:{eye:'Choisissez votre interlocuteur',title:'Trois agents. Un appel.',text:'Chaque profil garde son nom, sa langue, sa reconnaissance vocale, sa voix et son dossier de session. Les trois peuvent participer à la même conversation.',agents:[['Claude','Une voix chaleureuse et un profil bien à lui.','claude','claude'],['GPT / Codex','Peut aussi continuer sans surveillance avec --respond.','gpt','gpt'],['Agent IA','Apportez votre agent et vos propres couleurs.','custom','custom']]},
+      da:{eye:'Vælg din samtalepartner',title:'Tre agenter. Ét opkald.',text:'Hver profil har sit eget navn, sprog, talegenkendelse, stemme og sin egen sessionsmappe. Alle tre kan være med i den samme samtale.',agents:[['Claude','En varm samtalestemme med sin egen profil.','claude','claude'],['GPT / Codex','Kan også fortsætte uden opsyn med --respond.','gpt','gpt'],['AI-agent','Tag din egen agent og dine egne farver med.','custom','custom']]},
+      ja:{eye:'通話相手を選ぶ',title:'3人のエージェント。1つの通話。',text:'各プロフィールには、名前、言語、音声認識、声、セッション用フォルダがそれぞれあります。3人とも同じ会話に参加できます。',agents:[['Claude','あたたかく会話する声。専用プロフィール付きです。','claude','claude'],['GPT / Codex','--respond を使えば、無人でも応答を続けられます。','gpt','gpt'],['AI エージェント','自分のエージェントと好きな色を持ち込めます。','custom','custom']]}
+    };
+    const $ = id => document.getElementById(id), langs = Object.keys(copy);
+    function fillCards(id, entries, numbered=false) { $(id).replaceChildren(...entries.map((x,i)=>{ const d=document.createElement('article'); d.className='card'; d.innerHTML=(numbered?`<div class="number">${i+1}</div>`:'')+`<h3>${x[0]}</h3><p>${x[1]}</p>`; return d; })); }
+    function fillAgents(entries) { $('agentCards').replaceChildren(...entries.map(x=>{ const d=document.createElement('article'); d.className=`agent-card ${x[3]}`; d.innerHTML=`<div class="agent-orb" aria-hidden="true"></div><h3>${x[0]}</h3><p>${x[1]}</p><div class="cmd-row"><code class="agent-command">fernsprecher-ki-modus-an --agent ${x[2]} join &quot;&lt;link&gt;&quot;</code><button class="copy-btn" type="button" aria-label="${COPY[document.documentElement.lang] || COPY.en}" title="${COPY[document.documentElement.lang] || COPY.en}">${ICON_COPY}</button></div>`; return d; })); }
+    const COPY = { en: 'Copy', de: 'Kopieren', fr: 'Copier', da: 'Kopiér', ja: 'コピー' };
+    const ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
+    const ICON_DONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    document.addEventListener('click', async e => {
+      const b = e.target.closest('.copy-btn'); if (!b) return;
+      const text = b.parentElement.querySelector('code').textContent;
+      try { await navigator.clipboard.writeText(text); }
+      catch { const r = document.createRange(); r.selectNodeContents(b.parentElement.querySelector('code')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy'); sel.removeAllRanges(); }
+      b.innerHTML = ICON_DONE; b.classList.add('done');
+      clearTimeout(b._t); b._t = setTimeout(() => { b.innerHTML = ICON_COPY; b.classList.remove('done'); }, 1600);
+    });
+    function render(lang) { const c=copy[lang], a=agentCopy[lang]; document.documentElement.lang=lang; document.title='Fernsprecher-KI-Modus'; ['eye','title','lede','guest','listening','status','whatEye','whatTitle','whatText','howEye','howTitle','howText','privacyEye','privacyTitle','privacyText','reqEye','reqTitle','reqText','footer'].forEach(k=>{ const map={eye:'eyebrow',title:'title',lede:'lede',guest:'guest',listening:'listening',status:'tileStatus',whatEye:'whatEye',whatTitle:'whatTitle',whatText:'whatText',howEye:'howEye',howTitle:'howTitle',howText:'howText',privacyEye:'privacyEye',privacyTitle:'privacyTitle',privacyText:'privacyText',reqEye:'reqEye',reqTitle:'reqTitle',reqText:'reqText',footer:'footer'}; $(map[k]).textContent=c[k]; }); ['eye','title','text'].forEach(k=>{ $('agents'+k[0].toUpperCase()+k.slice(1)).textContent=a[k]; }); $('release').textContent=c.release; $('learn').textContent=c.learn; fillCards('whatCards',c.cards); fillAgents(a.agents); fillCards('steps',c.steps,true); $('checks').replaceChildren(...c.checks.map(x=>{const d=document.createElement('div');d.className='check';d.innerHTML=`<b>✓</b><p><strong>${x[0]}</strong><br>${x[1]}</p>`;return d;})); $('reqs').replaceChildren(...c.reqs.map(x=>{const d=document.createElement('div');d.className='requirement';d.innerHTML=`<strong>${x[0]}</strong><span>${x[1]}</span>`;return d;})); $('language').value=lang; localStorage.setItem('fernsprecher-language',lang); }
+    const select=$('language'); langs.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=copy[l].name;select.append(o)});
+    const saved=localStorage.getItem('fernsprecher-language'); const detected=(navigator.language||'en').slice(0,2); render(saved&&copy[saved]?saved:(copy[detected]?detected:'en'));
+    select.addEventListener('change',e=>render(e.target.value));
+    const theme=$('theme'), savedTheme=localStorage.getItem('fernsprecher-theme'); if(savedTheme) document.documentElement.dataset.theme=savedTheme;
+    theme.addEventListener('click',()=>{const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;localStorage.setItem('fernsprecher-theme',next);});
+  </script>
+</body>
+</html>
