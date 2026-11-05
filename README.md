@@ -125,16 +125,57 @@ writes it into `Tile/*.js`, the CLI and the playground. Rebuild, and the next ca
 
 ## Privacy
 
-How private it is depends on where you run it and which agent you use.
+Fernsprecher-KI-Modus is a tool you run on your own Mac. I, the author, receive nothing from it: no telemetry, no
+analytics, no server of mine. The project website is covered by the
+[adm1nsys privacy notice](https://adm1nsys.github.io/adm1nsys/datenschutz.html).
 
-- **Everything runs on the Mac that is in the call.** Speech recognition (Apple or Whisper) and the voices work there;
-  the tool sends no audio to any server.
-- **The transcript lives on that Mac**, in `~/.fernsprecher/transcript.txt` (or your `--dir`), and that is what the agent reads.
-- **Who else sees the words is up to the agent.** A cloud agent such as Claude or GPT/Codex sends what it reads to its
-  provider, as in any chat with it. A local language model keeps everything on the Mac.
-- No account. The agent can't type an Apple ID or a password, and `AGENTUR.md` tells it never to. The FaceTime web
-  session is in-memory only, and its WebCrypto key is generated per run, so nothing goes to the keychain.
-- Delete `transcript.txt` whenever you like.
+**Whoever brings the agent into a call is responsible.** You decide when the conversation is written down and which
+agent reads it, so you are responsible for that data, as with any meeting notes or recording tool. Purely private calls
+with family and friends generally fall under the household exemption (Art. 2(2)(c) GDPR); at work, in a club or with
+customers the GDPR applies to you with all its duties.
+
+**Tell the others, every time.**
+
+- The agent joins visibly as its own participant with a name, has to be admitted every time, and its tile shows when it
+  is listening. That still does not replace telling people.
+- Say at the start that an AI agent is listening, that everything said is written down as text, and which provider
+  receives it (or that everything stays on the Mac). If anyone objects, remove the agent.
+- Never use it in conversations where the others do not know. In Germany, recording another person's non-public spoken
+  word without permission is a criminal offence (Section 201 StGB). Fernsprecher keeps no audio by default, but secretly
+  writing a conversation down is no more acceptable and can breach data protection law.
+- For confidential conversations (doctor, lawyer, HR, health) only with everyone's consent, and preferably with a local
+  language model.
+
+**What is stored on the Mac**, in the agent's session folder (`~/.fernsprecher`, `~/.fernsprecher-gpt`,
+`~/.fernsprecher-agent` or your `--dir`):
+
+| File | Contents |
+| --- | --- |
+| `transcript.txt`, `transcript.jsonl` | everything said, with the time; people appear as `them`, agents by name. Emptied at the start of every call. |
+| `daemon.log` | technical log, including the recognised sentences; grows across calls |
+| `frame-….jpg` | single camera frames of a participant, only when the agent runs `look`; kept until you delete them |
+| `incoming-16k-s16le.raw` | incoming audio, only with `--record` (for debugging); off by default |
+| `status.json`, `listen.cursor`, `words.txt` | call state and your word list |
+
+None of it is uploaded automatically. Delete it all after a call with
+`rm -rf ~/.fernsprecher ~/.fernsprecher-gpt ~/.fernsprecher-agent` (the app's profiles and settings live elsewhere).
+
+**What leaves the Mac**
+
+- **The call itself** runs through Apple, as for every FaceTime web guest.
+- **Speech recognition:** by default Apple's on-device model or Whisper (MLX) on the Mac; no audio leaves the Mac.
+  The hidden option `--stt server` uses Apple's server dictation and sends the audio of every sentence to Apple; only use
+  it if everyone knows.
+- **Voices:** Apple and Piper voices run on the Mac.
+- **The agent:** a cloud agent such as Claude or GPT/Codex sends everything it reads (the transcript, and images from
+  `look` or `show`) to its provider under that provider's terms; depending on the account, chats may also be used for
+  training. A local language model keeps everything on the Mac.
+- **Models:** the app downloads speech models and voices from Apple and Hugging Face; only files are downloaded, no call
+  data is sent.
+- **`show screen`** shows your screen to everyone in the call; close private windows first.
+
+**No account.** The agent can't type an Apple ID or a password, and `AGENTUR.md` tells it never to. The FaceTime web
+session is in-memory only, and its WebCrypto key is generated per run, so nothing goes to the keychain.
 
 ## Building
 
