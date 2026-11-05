@@ -21,6 +21,7 @@ fernsprecher-ki-modus-an — FaceTime calls for an AI agent (audio only, no Face
         stdin, writes a WAV to FTK_OUT.
               [--pause 0.8] [--words "Nikita,Kubernetes"] [--monitor] [--record] [--stt local|whisper|server] [--whisper-model whisper-large-v3-turbo] [--tile-lang de] [--avatar orb|human|bot] [--brand claude|gpt|'#bg1,#bg2,#orb'] [--barge-in] [--no-video] [--no-chime] [--verbose] [--foreground] [--wait 60]
         Joins the call in the background and returns once inside (or waiting to be let in).
+        Once in, first say who you are: an AI agent, which model, and that everyone is heard as text.
         Instead of a camera the agent shows a tile: its name, status (listening / hearing / thinking /
         speaking) and captions. A soft chime confirms each phrase it heard.
         --words and <dir>/words.txt (one per line) list names and slang the recognizer should expect;
@@ -308,9 +309,11 @@ func join(_ args: Args, paths: SessionPaths) -> Never {
         switch phase {
         case "in-call":
             out("in call as \(opts.name) (pid \(pid)). transcript: \(paths.transcriptText.path)")
+            out(introduceHint)
             exit(0)
         case "waiting":
             out("waiting to be let in — someone in the call has to admit \(opts.name). pid \(pid). check with `fernsprecher-ki-modus-an status`.")
+            out("once you are in: " + introduceHint)
             exit(0)
         case "ended", "declined", "unsupported":
             fail("call \(phase); see \(paths.log.path)")
@@ -320,6 +323,12 @@ func join(_ args: Args, paths: SessionPaths) -> Never {
     out("still \(lastPhase.isEmpty ? "starting" : lastPhase) after \(Int(wait))s (pid \(pid)); see `fernsprecher-ki-modus-an status` and \(paths.log.path)")
     exit(0)
 }
+
+/// Printed by `join`, because the agent may never have read AGENTUR.md: people in the call should know
+/// they are talking to an AI and that what they say is written down.
+let introduceHint = "first say who you are, in one friendly sentence of your own: that you are an AI agent, which model you are, "
+    + "and that you hear everyone as text that goes into a transcript on this Mac (if your provider sees that text, say so). "
+    + "Tell people who join later, too."
 
 func request(_ paths: SessionPaths, _ req: [String: Any]) -> [String: Any] {
     do {

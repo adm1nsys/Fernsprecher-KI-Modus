@@ -138,6 +138,8 @@ customers the GDPR applies to you with all its duties.
 
 - The agent joins visibly as its own participant with a name, has to be admitted every time, and its tile shows when it
   is listening. That still does not replace telling people.
+- The agent introduces itself too: `join` itself tells it (even without `AGENTUR.md`) to say right after joining that it is an AI agent, which model
+  it is, and that everything said goes into a transcript on the Mac, as a short heads-up rather than a warning sign.
 - Say at the start that an AI agent is listening, that everything said is written down as text, and which provider
   receives it (or that everything stays on the Mac). If anyone objects, remove the agent.
 - Never use it in conversations where the others do not know. In Germany, recording another person's non-public spoken
