@@ -65,7 +65,7 @@ App languages: English, Deutsch, Français, Dansk, 日本語.
 
 ## Requirements
 
-- macOS 26 or later. Whisper needs Apple silicon.
+- macOS 26 or later, on Apple silicon or Intel. Whisper needs Apple silicon; everything else runs on Intel Macs too.
 - Python 3.9–3.13 only if you want Whisper or Piper. It comes with the Xcode Command Line Tools or from python.org;
   the app builds its own venvs and never touches your Python.
 - A human in the call who presses **Admit** when the agent knocks.

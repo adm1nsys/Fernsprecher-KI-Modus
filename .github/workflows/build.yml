@@ -1,0 +1,87 @@
+name: Build Fernsprecher
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'App/**'
+      - 'CLI/**'
+      - 'Shared/**'
+      - 'Config/**'
+      - 'Tile/**'
+      - 'Fernsprecher-KI-Modus.xcodeproj/**'
+      - '.github/workflows/build.yml'
+  pull_request:
+    paths:
+      - 'App/**'
+      - 'CLI/**'
+      - 'Shared/**'
+      - 'Config/**'
+      - 'Tile/**'
+      - 'Fernsprecher-KI-Modus.xcodeproj/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: |
+          xcodebuild -version
+          echo "PRODUCTS=$RUNNER_TEMP/Derived/Build/Products/Release" >> "$GITHUB_ENV"
+
+      # The app target embeds the command-line tool, so one build makes both
+      - name: Build universal app and CLI
+        run: |
+          xcodebuild \
+            -project Fernsprecher-KI-Modus.xcodeproj \
+            -scheme Fernsprecher \
+            -configuration Release \
+            -derivedDataPath "$RUNNER_TEMP/Derived" \
+            -destination "generic/platform=macOS" \
+            ARCHS="arm64 x86_64" \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Verify architectures
+        run: |
+          for EXECUTABLE in \
+            "$PRODUCTS/Fernsprecher.app/Contents/MacOS/Fernsprecher" \
+            "$PRODUCTS/Fernsprecher.app/Contents/MacOS/fernsprecher-ki-modus-an"; do
+            lipo -verify_arch arm64 "$EXECUTABLE"
+            lipo -verify_arch x86_64 "$EXECUTABLE"
+            echo "$(basename "$EXECUTABLE"): $(lipo -archs "$EXECUTABLE")"
+          done
+
+      - name: Check the CLI starts and the agent templates are bundled
+        run: |
+          "$PRODUCTS/Fernsprecher.app/Contents/MacOS/fernsprecher-ki-modus-an" > "$RUNNER_TEMP/help.txt" 2>&1
+          grep -q 'join <link>' "$RUNNER_TEMP/help.txt"
+          grep -q 'Once in, first say who you are' "$RUNNER_TEMP/help.txt"
+          for LANG_CODE in en de fr da ja; do
+            test -f "$PRODUCTS/Fernsprecher.app/Contents/Resources/AGENTUR.$LANG_CODE.md"
+          done
+
+      - name: Package
+        run: |
+          ditto -c -k --norsrc --noextattr --noqtn --keepParent \
+            "$PRODUCTS/Fernsprecher.app" "$RUNNER_TEMP/Fernsprecher.zip"
+          tar -czf "$RUNNER_TEMP/fernsprecher-ki-modus-an-macos-universal.tar.gz" \
+            -C "$PRODUCTS/Fernsprecher.app/Contents/MacOS" fernsprecher-ki-modus-an
+          cd "$RUNNER_TEMP"
+          shasum -a 256 Fernsprecher.zip fernsprecher-ki-modus-an-macos-universal.tar.gz | tee SHA256SUMS
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fernsprecher-universal
+          path: |
+            ${{ runner.temp }}/Fernsprecher.zip
+            ${{ runner.temp }}/fernsprecher-ki-modus-an-macos-universal.tar.gz
+            ${{ runner.temp }}/SHA256SUMS
